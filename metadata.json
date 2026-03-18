@@ -1,0 +1,7 @@
+{
+  "name": "PlantDoc AI",
+  "description": "Диагностика заболеваний растений и рекомендации по уходу с помощью ИИ и поиска в реальном времени.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
