@@ -38,22 +38,60 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
 
+  // НОВАЯ ФУНКЦИЯ СО СЖАТИЕМ КАРТИНОК ДО 1024px (ИЗБЕГАЕМ ОШИБКИ 413)
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        setError('Файл слишком большой. Максимальный размер — 10МБ.');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImage(reader.result as string);
+    if (!file) return;
+
+    // Увеличили лимит до 20МБ, так как все равно будем сжимать
+    if (file.size > 20 * 1024 * 1024) {
+      setError('Файл слишком большой. Пожалуйста, выберите фото до 20МБ.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      // Создаем виртуальное изображение для ресайза
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        // Лимит по большей стороне - 1024 пикселя (идеально для ИИ)
+        const MAX_SIZE = 1024;
+
+        if (width > height) {
+          if (width > MAX_SIZE) {
+            height = Math.round((height * MAX_SIZE) / width);
+            width = MAX_SIZE;
+          }
+        } else {
+          if (height > MAX_SIZE) {
+            width = Math.round((width * MAX_SIZE) / height);
+            height = MAX_SIZE;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        // Отрисовываем уменьшенную картинку
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        // Переводим в base64, конвертируем в JPEG и жмем качество до 80%
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+
+        setImage(compressedBase64);
         setResult(null);
         setError(null);
         setSelectedIssueIndex(null);
       };
-      reader.readAsDataURL(file);
-    }
+      
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleAnalyze = async () => {
@@ -169,7 +207,7 @@ export default function App() {
                       <Upload size={24} />
                     </div>
                     <span className="font-medium">Загрузить фото</span>
-                    <span className="text-xs text-sage-400 mt-1">PNG, JPG до 10МБ</span>
+                    <span className="text-xs text-sage-400 mt-1">PNG, JPG до 20МБ</span>
                   </button>
 
                   <button 
