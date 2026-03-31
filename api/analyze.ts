@@ -1,4 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
+export const maxDuration = 60; // Даем серверу 60 секунд на подумать
 
 export default async function handler(req: any, res: any) {
   // Пропускаем только POST-запросы
